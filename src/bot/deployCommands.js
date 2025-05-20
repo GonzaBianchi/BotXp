@@ -9,7 +9,7 @@ dotenv.config();
 export async function deployCommands(client) {
   const commands = [];
   // Corrige la ruta para que funcione desde cualquier ubicación del proyecto
-  const commandsPath = join(process.cwd(), 'bot', 'commands');
+  const commandsPath = join(process.cwd(), 'src', 'bot', 'commands');
   
   // Leer todos los archivos de comandos
   const readCommands = async (path) => {
