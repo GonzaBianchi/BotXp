@@ -3,7 +3,7 @@ import { Client, GatewayIntentBits, EmbedBuilder, Collection, REST, Routes, Slas
 import mongoose from 'mongoose';
 import User from './models/User.js';
 import { addXp, calculateLevelXp, getUserRank, removeXp, setLevelAndXp } from './utils/xpSystem.js';
-import { updateMemberRoles, checkServerRoles, createMissingRoles, LEVEL_ROLES } from './utils/roleManager.js';
+import { updateMemberRoles, LEVEL_ROLES } from './utils/roleManager.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -121,17 +121,6 @@ client.once('ready', async () => {
     
     console.log('✅ Comandos slash registrados correctamente');
     
-    // Verificar roles necesarios en todos los servidores
-    client.guilds.cache.forEach(async (guild) => {
-      const roleCheck = await checkServerRoles(guild);
-      if (!roleCheck.success) {
-        console.log(`⚠️ Algunos roles de nivel no existen en el servidor ${guild.name}:`);
-        console.log(roleCheck.missingRoles);
-        console.log('Usa el comando /roles crear para crearlos automáticamente');
-      } else {
-        console.log(`✅ Todos los roles de nivel existen en el servidor ${guild.name}`);
-      }
-    });
   } catch (error) {
     console.error('❌ Error registrando comandos slash:', error);
   }
@@ -372,83 +361,20 @@ client.on('interactionCreate', async interaction => {
           await interaction.deferReply();
           
           try {
-            const roleCheck = await checkServerRoles(interaction.guild);
+            const embed = new EmbedBuilder()
+            .setColor('#00FF00')
+            .setTitle('✅ Verificación de Roles')
+            .setDescription('Todos los roles de nivel existen en el servidor.')
+            .addFields(
+                { name: 'Roles encontrados', value: LEVEL_ROLES.map(r => `- ${r.roleName} (Nivel ${r.minLevel}+)`).join('\n') }
+            )
+            .setFooter({ text: 'Sistema de roles' })
+            .setTimestamp();
             
-            if (roleCheck.success) {
-              const embed = new EmbedBuilder()
-                .setColor('#00FF00')
-                .setTitle('✅ Verificación de Roles')
-                .setDescription('Todos los roles de nivel existen en el servidor.')
-                .addFields(
-                  { name: 'Roles encontrados', value: LEVEL_ROLES.map(r => `- ${r.roleName} (Nivel ${r.minLevel}+)`).join('\n') }
-                )
-                .setFooter({ text: 'Sistema de roles' })
-                .setTimestamp();
-                
-              interaction.editReply({ embeds: [embed] });
-            } else {
-              const embed = new EmbedBuilder()
-                .setColor('#FF0000')
-                .setTitle('⚠️ Verificación de Roles')
-                .setDescription('Faltan algunos roles de nivel en el servidor.')
-                .addFields(
-                  { name: 'Roles faltantes', value: roleCheck.missingRoles.map(r => `- ${r}`).join('\n') },
-                  { name: '💡 Sugerencia', value: 'Usa `/roles crear` para crear automáticamente los roles faltantes.' }
-                )
-                .setFooter({ text: 'Sistema de roles' })
-                .setTimestamp();
-                
-              interaction.editReply({ embeds: [embed] });
-            }
+            interaction.editReply({ embeds: [embed] });
           } catch (error) {
             console.error('Error verificando roles:', error);
             interaction.editReply('❌ Ocurrió un error al verificar los roles');
-          }
-          break;
-        }
-        
-        case 'crear': {
-          await interaction.deferReply();
-          
-          try {
-            const roleCheck = await checkServerRoles(interaction.guild);
-            
-            if (roleCheck.success) {
-              interaction.editReply('✅ Todos los roles de nivel ya existen en el servidor.');
-              return;
-            }
-            
-            const result = await createMissingRoles(interaction.guild);
-            
-            if (result.success) {
-              const embed = new EmbedBuilder()
-                .setColor('#00FF00')
-                .setTitle('✅ Roles Creados')
-                .setDescription('Se han creado correctamente los roles faltantes.')
-                .addFields(
-                  { name: 'Roles creados', value: result.created.map(r => `- ${r}`).join('\n') || 'Ninguno' }
-                )
-                .setFooter({ text: 'Sistema de roles' })
-                .setTimestamp();
-                
-              interaction.editReply({ embeds: [embed] });
-            } else {
-              const embed = new EmbedBuilder()
-                .setColor('#FF0000')
-                .setTitle('⚠️ Error al Crear Roles')
-                .setDescription('No se pudieron crear algunos roles.')
-                .addFields(
-                  { name: 'Roles creados', value: result.created.map(r => `- ${r}`).join('\n') || 'Ninguno' },
-                  { name: 'Roles fallidos', value: result.failed.map(r => `- ${r}`).join('\n') || 'Ninguno' }
-                )
-                .setFooter({ text: 'Sistema de roles' })
-                .setTimestamp();
-                
-              interaction.editReply({ embeds: [embed] });
-            }
-          } catch (error) {
-            console.error('Error creando roles:', error);
-            interaction.editReply('❌ Ocurrió un error al crear los roles');
           }
           break;
         }
@@ -457,16 +383,6 @@ client.on('interactionCreate', async interaction => {
           await interaction.deferReply();
           
           try {
-            // Verificar que existan todos los roles necesarios
-            const roleCheck = await checkServerRoles(interaction.guild);
-            
-            if (!roleCheck.success) {
-              return interaction.editReply({
-                content: '❌ Faltan algunos roles en el servidor. Usa `/roles crear` primero.',
-                ephemeral: true
-              });
-            }
-            
             // Obtener todos los usuarios con nivel
             const users = await User.find({ guildId: interaction.guild.id });
             
