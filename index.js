@@ -661,3 +661,17 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.login(process.env.TOKEN);
+
+// --- Servidor Express para mantener activo el bot ---
+import express from 'express';
+const app = express();
+
+const PORT = process.env.PORT || 3000;
+
+app.get('/', (req, res) => {
+  res.send('Bot de Discord activo 🚀');
+});
+
+app.listen(PORT, () => {
+  console.log(`🌐 Servidor Express escuchando en el puerto ${PORT}`);
+});
